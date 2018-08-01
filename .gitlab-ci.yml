@@ -1,0 +1,37 @@
+# requiring the environment of NodeJS 8.9.x LTS (carbon)
+image: node:8.9
+
+# add 'node_modules' to cache for speeding up builds
+cache:
+  paths:
+    - node_modules/ # Node modules and dependencies
+
+before_script:
+  - sudo npm install gitbook-cli -g # install gitbook
+  - sudo gitbook fetch latest # fetch latest stable version
+  - sudo gitbook install # add any requested plugins in book.json
+  #- gitbook fetch pre # fetch latest pre-release version
+  #- gitbook fetch 2.6.7 # fetch specific version
+
+test:
+  stage: test
+  script:
+    - sudo gitbook build . public # build to public path
+  only:
+    - branches # this job will affect only the 'master' branch
+  except:
+    - master
+    
+# the 'pages' job will deploy and build your site to the 'public' path
+pages:
+  stage: deploy
+  script:
+    - sudo gitbook build . public # build to public path
+    - sudo /usr/bin/cp -r public/* /usr/share/nginx/o
+    - sudo chown -R gitlab-runner.gitlab-runner public
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 week
+  only:
+    - master # this job will affect only the 'master' branch
